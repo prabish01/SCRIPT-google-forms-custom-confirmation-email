@@ -1,0 +1,109 @@
+# Google Forms Custom Confirmation Email Script
+
+A Google Apps Script that automatically sends personalized confirmation emails to form respondents with their submitted data and file upload links.
+
+## Features
+
+- Automatic email confirmation after form submission
+- Dynamic data mapping from any Google Form
+- File upload link inclusion
+- Customizable email templates
+- Works with any form structure
+
+## Installation
+
+1. **Link Google Form to Google Sheet**
+   - Open your Google Form → Responses tab → Click Google Sheets icon
+
+2. **Add Script**
+   - Open the linked sheet → Extensions → Apps Script
+   - Replace default code with the script below
+   - Save the project
+
+3. **Set Trigger**
+   - In Apps Script editor, click Triggers icon
+   - Add trigger: Function `onFormSubmit`, Event source `From spreadsheet`, Event type `On form submit`
+   - Save and authorize
+
+## Configuration
+
+### Email Message Customization
+
+Replace the field names in the script with your actual form field names:
+
+```javascript
+const email = data["Email Address"];           // Your email field name
+const fullName = data["Full Name"];           // Your name field
+const location = data["Location"];            // Your location field
+const amount = data["Amount"];                // Your amount field
+// Add more fields as needed
+```
+
+**Simply use whatever field names you have in your Google Form - just match them exactly as they appear in the form.**
+
+### File Upload Fields
+
+Update the `fileFields` array with your exact file upload question titles:
+
+```javascript
+const fileFields = [
+  "Upload your resume",
+  "Profile photo",
+  // Replace with your actual file upload field names
+];
+```
+
+If your form has no file uploads, comment out or remove the entire file upload section.
+
+## Complete Script
+
+```javascript
+function onFormSubmit(e) {
+  const sheet = e.source.getActiveSheet();
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const values = e.values;
+  const data = Object.fromEntries(headers.map((h, i) => [h, values[i]]));
+  const email = data["Email Address"];
+  const fullName = data["Full Name"];
+  const location = data["Location"];
+  const amount = data["Amount"];
+  const repayAmount = data["Repayment Amount"];
+  const repayDue = data["Repayment Due Date"];
+  const paymentMethod = data["Payment Method"];
+  const status = data["Status"] || "REQ";
+  // Construct message
+  let message = `
+Dear ${fullName},
+This statement is to declare that ${fullName}, who lives in ${location}, has applied for a loan of $${amount}. 
+They have agreed to repay $${repayAmount} by ${repayDue} via ${paymentMethod}. 
+Their loan request has been recorded with the status "${status}".
+Submitted Files:
+`;
+  // Attach uploaded file links with custom labels
+  const fileFields = [
+    "Close Up Of ID (Front & Back) *",
+    "Most Recent Pay-Stubs (2/Two) *",
+    "Upload A Selfie While Holding Your ID.",
+    "Reddit Username + ID And Todays Date On A Piece Of Paper (Make Sure It's Visible Please) *",
+    "Upload A Proof Of Address. (Utility bill, internet bill etc..) *"
+  ];
+  for (let field of fileFields) {
+    if (data[field]) {
+      message += `\n• ${field}: ${data[field]}`;
+    }
+  }
+  message += `\n\nIf any of the above information is incorrect, please contact us immediately.\n\nBest regards,\nLoan Processing Team`;
+  // Send Email
+  GmailApp.sendEmail(email, `Loan Application Confirmation - ${fullName}`, message);
+}
+```
+
+## Troubleshooting
+
+- **No emails sent**: Check trigger setup and ensure "Email Address" field exists
+- **Script errors**: Remove file upload section if not using file uploads
+- **Missing data**: Verify field names match your form exactly (case-sensitive)
+
+## Contributing
+
+Contributions welcome! Open an issue or submit a Pull Request.
